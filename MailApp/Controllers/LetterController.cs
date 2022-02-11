@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MailApp.Controllers;
 
-[ApiController, Route("letters")]
+[ApiController, Route("api/v1/letters")]
 public class LetterController : ControllerBase
 {
     private readonly ILogger<LetterController> _logger;
