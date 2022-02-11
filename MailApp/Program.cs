@@ -1,10 +1,12 @@
 using System.Reflection;
+using MailApp.Filters;
 using MailApp.Services;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddSingleton<IUriService>(serviceProvider =>
 {
     var accessor = serviceProvider.GetRequiredService<IHttpContextAccessor>();
@@ -13,8 +15,13 @@ builder.Services.AddSingleton<IUriService>(serviceProvider =>
     return new UriService(uri);
 });
 
+builder.Services.AddSingleton<IMailDataService>(
+    new MailDataService(builder.Configuration.GetConnectionString("Postgresql"))
+);
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1",
@@ -29,6 +36,15 @@ builder.Services.AddSwaggerGen(options =>
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     options.IncludeXmlComments(xmlPath);
 });
+
+try
+{
+    PaginationFilter.MaxPageSize = int.Parse(builder.Configuration.GetSection("Pagination")["MaxPageSize"]);
+}
+catch (Exception ex) when (ex is FormatException or ArgumentNullException or OverflowException)
+{
+    PaginationFilter.MaxPageSize = 10;
+}
 
 var app = builder.Build();
 

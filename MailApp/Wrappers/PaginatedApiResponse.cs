@@ -1,6 +1,6 @@
 ﻿namespace MailApp.Wrappers;
 
-public class PagedResponse : ApiResponse
+public class PaginatedApiResponse : ApiResponse
 {
     public long PageNumber { get; set; }
     public long PageSize { get; set; }
@@ -11,7 +11,7 @@ public class PagedResponse : ApiResponse
     public Uri? PreviousPage { get; set; }
     public Uri? NextPage { get; set; }
 
-    public PagedResponse(object data, int pageNumber, int pageSize) : base(data)
+    public PaginatedApiResponse(object data, int pageNumber, int pageSize) : base(data)
     {
         PageNumber = pageNumber;
         PageSize = pageSize;

@@ -1,4 +1,3 @@
-using MailApp.Data;
 using MailApp.Filters;
 using MailApp.Helpers;
 using MailApp.Models;
@@ -13,13 +12,13 @@ public class LetterController : ControllerBase
 {
     private readonly ILogger<LetterController> _logger;
     private readonly IUriService _uriService;
-    private readonly MailData _mailData;
+    private readonly IMailDataService _mailData;
 
-    public LetterController(ILogger<LetterController> logger, IConfiguration configuration, IUriService uriService)
+    public LetterController(ILogger<LetterController> logger, IMailDataService mailData, IUriService uriService)
     {
         _logger = logger;
         _uriService = uriService;
-        _mailData = new MailData(configuration.GetConnectionString("Postgresql"));
+        _mailData = mailData;
     }
 
     /// <summary>

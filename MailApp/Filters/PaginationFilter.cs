@@ -5,6 +5,14 @@ namespace MailApp.Filters;
 
 public class PaginationFilter
 {
+    private static int _maxPageSize;
+
+    public static int MaxPageSize
+    {
+        get => _maxPageSize;
+        set => _maxPageSize = value < 1 ? 1 : value;
+    }
+
     private readonly int _pageNumber;
     private readonly int _pageSize;
 
@@ -19,13 +27,13 @@ public class PaginationFilter
     public int PageSize
     {
         get => _pageSize;
-        init => _pageSize = value > 10 ? 10 : value;
+        init => _pageSize = value > MaxPageSize || value < 1 ? MaxPageSize : value;
     }
 
     public PaginationFilter()
     {
         PageNumber = 1;
-        PageSize = 10;
+        PageSize = MaxPageSize;
     }
 
     public PaginationFilter(int pageNumber, int pageSize)

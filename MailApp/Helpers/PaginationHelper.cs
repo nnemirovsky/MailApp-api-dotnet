@@ -6,10 +6,10 @@ namespace MailApp.Helpers;
 
 public static class PaginationHelper
 {
-    public static PagedResponse CreatePagedResponse(object pagedData, PaginationFilter filter, long totalRecords,
+    public static PaginatedApiResponse CreatePagedResponse(object pagedData, PaginationFilter filter, long totalRecords,
         IUriService uriService, string route)
     {
-        var response = new PagedResponse(pagedData, filter.PageNumber, filter.PageSize);
+        var response = new PaginatedApiResponse(pagedData, filter.PageNumber, filter.PageSize);
         var totalPages = (double) totalRecords / filter.PageSize;
         int roundedTotalPages = Convert.ToInt32(Math.Ceiling(totalPages));
 
