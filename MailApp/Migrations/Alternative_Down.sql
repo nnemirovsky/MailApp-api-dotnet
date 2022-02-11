@@ -1,0 +1,5 @@
+DROP TABLE IF EXISTS letters;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS letters_recipients;
+DROP TABLE IF EXISTS tags;
+DROP TABLE IF EXISTS letters_tags;
