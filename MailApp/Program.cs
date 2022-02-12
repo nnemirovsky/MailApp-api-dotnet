@@ -15,9 +15,12 @@ builder.Services.AddSingleton<IUriService>(serviceProvider =>
     return new UriService(uri);
 });
 
-builder.Services.AddSingleton<IMailDataService>(
-    new MailDataService(builder.Configuration.GetConnectionString("Postgresql"))
-);
+builder.Services.AddSingleton<IMailDataService>(serviceProvider =>
+{
+    var connStr = builder.Configuration.GetConnectionString("Postgresql");
+    var logger = serviceProvider.GetRequiredService<ILogger<MailDataService>>();
+    return new MailDataService(connStr, logger);
+});
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

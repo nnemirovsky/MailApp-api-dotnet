@@ -1,21 +1,23 @@
 ﻿using System.Text;
 using MailApp.Filters;
+using MailApp.Helpers;
 using MailApp.Models;
 using Npgsql;
 using NpgsqlTypes;
 
 namespace MailApp.Services;
 
-public class MailDataService: IMailDataService
+public class MailDataService : IMailDataService
 {
-    private readonly string _dbConnectionString;
     private const NpgsqlDbType ArrayNpgsqlType = NpgsqlDbType.Array | NpgsqlDbType.Text;
-    
-    public MailDataService(string dbConnectionString)
+    private ILogger _logger;
+
+    public MailDataService(string dbConnectionString, ILogger logger)
     {
-        _dbConnectionString = dbConnectionString;
+        SqlHelper.DbConnectionString = dbConnectionString;
+        _logger = logger;
     }
-    
+
     public (IEnumerable<Letter> letters, long fullCount) GetLetters(PaginationFilter pagination, string? sender,
         string? recipient, string? tag, DateFilter dateRange)
     {
@@ -80,70 +82,59 @@ public class MailDataService: IMailDataService
 
         var lettersToSkip = (pagination.PageNumber - 1) * pagination.PageSize;
         command.CommandText += query + $" ORDER BY id OFFSET {lettersToSkip} LIMIT {pagination.PageSize}";
-
-        using var connection = new NpgsqlConnection(_dbConnectionString);
-        connection.Open();
-        command.Connection = connection;
-
-        using var reader = command.ExecuteReader();
-
+        var rows = SqlHelper.GetData(command).Tables[0].Rows;
         var letters = new List<Letter>();
-
-        if (!reader.Read())
+        if (rows.Count == 0)
         {
-            reader.Close();
             command.CommandText = "SELECT COUNT(*) FROM letters " + query;
-            return (letters, (long) (command.ExecuteScalar() ?? 0));
+            return (letters, SqlHelper.GetValue<long>(command));
         }
 
-        var fullCount = (long) reader["full_count"];
-        do
+        letters.Capacity = rows.Count;
+        for (int i = 0; i < rows.Count; i++)
         {
+            var row = rows[i];
             letters.Add(new Letter
             {
-                Id = (int) reader["id"],
-                Subject = reader["subject"].ToString()!,
-                CreatedAt = (DateTime) reader["created_at"],
-                Recipients = reader["recipients"].ToString()!.Split(','),
-                Sender = reader["sender"].ToString()!,
-                Tags = reader["tags"].ToString()!.Split(','),
-                Body = reader["body"].ToString()!
+                Id = (int) row["id"],
+                Subject = row["subject"].ToString()!,
+                CreatedAt = (DateTime) row["created_at"],
+                Recipients = row["recipients"].ToString()!.Split(','),
+                Sender = row["sender"].ToString()!,
+                Tags = row["tags"].ToString()!.Split(','),
+                Body = row["body"].ToString()!
             });
-        } while (reader.Read());
+        }
 
-        return (letters, fullCount);
+        return (letters, (long) rows[0]["full_count"]);
     }
-    
+
     public IndexLetterDto GetLetterById(int id)
     {
-        using var connection = new NpgsqlConnection(_dbConnectionString);
-        connection.Open();
         var query = @$"SELECT subject, created_at, array_to_string(recipients, ',') AS recipients, sender, 
             array_to_string(tags, ',') AS tags, body FROM letters WHERE id = {id}";
-        using var command = new NpgsqlCommand(query, connection);
-        using var reader = command.ExecuteReader();
-        if (!reader.HasRows)
+        var command = new NpgsqlCommand(query);
+        var dataSet = SqlHelper.GetData(command);
+        if (dataSet.Tables[0].Rows.Count == 0)
             throw new KeyNotFoundException();
-        reader.Read();
+        var record = dataSet.Tables[0].Rows[0];
         var letter = new IndexLetterDto
         {
-            Subject = reader["subject"].ToString()!,
-            CreatedAt = (DateTime) reader["created_at"],
-            Recipients = reader["recipients"].ToString()!.Split(','),
-            Sender = reader["sender"].ToString()!,
-            Tags = reader["tags"].ToString()!.Split(','),
-            Body = reader["body"].ToString()!
+            Subject = record["subject"].ToString()!,
+            CreatedAt = (DateTime) record["created_at"],
+            Recipients = record["recipients"].ToString()!.Split(','),
+            Sender = record["sender"].ToString()!,
+            Tags = record["tags"].ToString()!.Split(','),
+            Body = record["body"].ToString()!
         };
         return letter;
     }
-    
+
     public int CreateLetter(CreateLetterDto letter)
     {
-        using var connection = new NpgsqlConnection(_dbConnectionString);
-        connection.Open();
         const string query = @"INSERT INTO letters (subject, recipients, sender, tags, body) 
                                 VALUES(@subject, @recipients, @sender, @tags, @body) RETURNING id";
-        using var command = new NpgsqlCommand(query, connection)
+        var command = new NpgsqlCommand(query)
         {
             Parameters =
             {
@@ -157,7 +148,7 @@ public class MailDataService: IMailDataService
                 new NpgsqlParameter("body", letter.Body),
             }
         };
-        return (int) command.ExecuteScalar()!;
+        return SqlHelper.GetValue<int>(command);
     }
 
     public IndexLetterDto UpdateLetter(int id, UpdateLetterDto updateLetterParams)
@@ -176,11 +167,9 @@ public class MailDataService: IMailDataService
         if (updateLetterParams.Body is not null)
             letter.Body = updateLetterParams.Body;
 
-        using var connection = new NpgsqlConnection(_dbConnectionString);
-        connection.Open();
         string query = @$"UPDATE letters SET subject = @subject, recipients = @recipients, sender = @sender, 
                             tags = @tags, created_at = @created_at, body = @body WHERE id = {id}";
-        using var command = new NpgsqlCommand(query, connection)
+        var command = new NpgsqlCommand(query)
         {
             Parameters =
             {
@@ -195,18 +184,13 @@ public class MailDataService: IMailDataService
                 new NpgsqlParameter("body", letter.Body)
             }
         };
-        command.ExecuteNonQuery();
+        SqlHelper.Execute(command);
         return letter;
     }
-    
+
     public void RemoveLetter(int id)
     {
-        using var connection = new NpgsqlConnection(_dbConnectionString);
-        connection.Open();
-
-        string query = @$"DELETE FROM letters WHERE id = {id}";
-        using var command = new NpgsqlCommand(query, connection);
-        if (command.ExecuteNonQuery() == -1)
+        if (SqlHelper.Execute(new NpgsqlCommand($"DELETE FROM letters WHERE id = {id}")) == -1)
             throw new KeyNotFoundException();
     }
 }
