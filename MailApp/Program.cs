@@ -7,13 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpContextAccessor();
 
-builder.Services.AddSingleton<IUriService>(serviceProvider =>
-{
-    var accessor = serviceProvider.GetRequiredService<IHttpContextAccessor>();
-    var request = accessor.HttpContext?.Request;
-    var uri = string.Concat(request?.Scheme, "://", request?.Host.ToUriComponent());
-    return new UriService(uri);
-});
+builder.Services.AddSingleton<IUriService, UriService>();
 
 builder.Services.AddSingleton<IMailDataService>(serviceProvider =>
 {

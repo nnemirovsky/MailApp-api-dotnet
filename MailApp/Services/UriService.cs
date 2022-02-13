@@ -7,9 +7,10 @@ public class UriService : IUriService
 {
     private readonly string _baseUri;
 
-    public UriService(string baseUri)
+    public UriService(IHttpContextAccessor contextAccessor)
     {
-        _baseUri = baseUri;
+        var request = contextAccessor.HttpContext?.Request;
+        _baseUri = string.Concat(request?.Scheme, "://", request?.Host.ToUriComponent());
     }
 
     public Uri GetPageUri(PaginationFilter filter, string route)

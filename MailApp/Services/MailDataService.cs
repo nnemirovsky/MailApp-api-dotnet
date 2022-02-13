@@ -10,9 +10,9 @@ namespace MailApp.Services;
 public class MailDataService : IMailDataService
 {
     private const NpgsqlDbType ArrayNpgsqlType = NpgsqlDbType.Array | NpgsqlDbType.Text;
-    private ILogger _logger;
+    private ILogger<MailDataService> _logger;
 
-    public MailDataService(string dbConnectionString, ILogger logger)
+    public MailDataService(string dbConnectionString, ILogger<MailDataService> logger)
     {
         SqlHelper.DbConnectionString = dbConnectionString;
         _logger = logger;
